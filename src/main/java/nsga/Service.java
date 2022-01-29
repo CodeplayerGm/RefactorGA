@@ -24,7 +24,6 @@
 
 package nsga;
 
-import com.debacharya.nsgaii.datastructure.*;
 import nsga.datastructure.*;
 import nsga.objectivefunction.AbstractObjectiveFunction;
 

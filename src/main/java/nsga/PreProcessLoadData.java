@@ -13,6 +13,17 @@ import java.util.stream.Collectors;
 public class PreProcessLoadData {
 
     /**
+     * 当前系统的预处理目录
+     */
+    static String dataPath = "data" + File.separator;
+    static String callGraphPath = dataPath + "allCallGraph.json";
+    static String allFilenamesDir = dataPath + "allFiles.flist";
+    static String clusterFile = dataPath + "cluster.json";
+    static String concernDir = dataPath + "concern.txt";
+    static String filenameDir = dataPath + "files.flist";
+    static String theta = dataPath + "model-final.theta";
+
+    /**
      * 代码文件 - 主题概率分布
      */
     public static List<List<Double>> fileTopic;
@@ -25,7 +36,7 @@ public class PreProcessLoadData {
      */
     public static Set<Integer> concerns;
     /**
-     * 全局代码文件列表
+     * 所有服务的代码文件列表
      */
     public static List<String> globalFileList;
     /**
@@ -45,8 +56,7 @@ public class PreProcessLoadData {
      * 计算SMQ的文件列表，调用矩阵
      */
 //    static String currentServicePath = "D:\\Development\\idea_projects\\microservices-platform-master\\zlt-uaa";
-    static String projectPath = "D:\\Development\\idea_projects\\microservices-platform-master";
-    static String callGraphPath = "D:\\Desktop\\allCallGraph.json";
+//    static String projectPath = "D:\\Development\\idea_projects\\microservices-platform-master";
     public static List<String> allFileList;
     public static int[][] allCallMatrix;
 //    public static double originSMQ = 0;
@@ -54,7 +64,6 @@ public class PreProcessLoadData {
     /**
      * 初始化种群
      */
-    static String clusterFile = "D:\\Desktop\\cluster.json";
     public static List<FunctionalAtom> clusters;
     public static int faNums;
     /**
@@ -109,7 +118,6 @@ public class PreProcessLoadData {
      * @return
      */
     public static List<List<Double>> readFileTopicMap() throws IOException {
-        String theta = "D:\\Development\\idea_projects\\codeTopics\\src\\test\\example\\model-final.theta";
         List<List<Double>> result = new ArrayList<>();
         FileInputStream is = new FileInputStream(theta);
         InputStreamReader isr = new InputStreamReader(is, StandardCharsets.UTF_8);
@@ -132,7 +140,6 @@ public class PreProcessLoadData {
      * 读取关注点 - tc值信息
      */
     public static Map<Integer, Double> readConcernTCMap() throws IOException {
-        String concernDir = "D:\\Development\\idea_projects\\codeTopics\\concern.txt";
         Map<Integer, Double> concernTCMap = new HashMap<>();
 
         FileInputStream is = new FileInputStream(concernDir);
@@ -155,7 +162,6 @@ public class PreProcessLoadData {
      * @return
      */
     public static List<String> readGlobalFileList() throws IOException {
-        String filenameDir = "D:\\Development\\idea_projects\\codeTopics\\src\\test\\example\\files.flist";
         System.out.println("global file list加载成功");
         return readFileList(filenameDir);
     }
@@ -219,14 +225,23 @@ public class PreProcessLoadData {
     }
 
     /**
+     * 将代码文件列表写入文件
+     * @param fileList
+     */
+    private static void writeFileList(List<String> fileList, String outputPath) throws IOException {
+        FileWriter writer = new FileWriter(outputPath, false);
+        StringBuilder sb = new StringBuilder();
+        fileList.forEach(f -> sb.append(f).append("\n"));
+        writer.write(sb.toString());
+        writer.close();
+    }
+
+    /**
      * 生成SMQ的call矩阵
      * @throws IOException
      */
     public static void generateCallMatrix() throws IOException {
-        FileFilter filter = pathname -> (pathname.getName().endsWith(".java") || pathname.isDirectory())
-                && !pathname.getName().toLowerCase(Locale.ROOT).endsWith("test");
-        allFileList = scan(new File(projectPath), filter);
-
+        allFileList = readFileList(allFilenamesDir);
         int len = allFileList.size();
         allCallMatrix = new int[len][len];
         JSONArray jsonArray = JSONArray.parseArray(readFile(callGraphPath));

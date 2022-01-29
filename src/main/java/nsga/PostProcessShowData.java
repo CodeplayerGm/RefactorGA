@@ -1,13 +1,18 @@
 package nsga;
 
+import java.io.File;
 import java.io.Serializable;
 import java.util.List;
 import java.util.stream.Collectors;
 
+import static nsga.Reporter.outputDirectory;
+
 public class PostProcessShowData {
 
-    public static final String outputProgramJson = "D:\\Development\\FrontBackProject\\refactorFront\\static\\refactorPrograms.json";
-    public static final String outputObjectiveJson = "D:\\Development\\FrontBackProject\\refactorFront\\static\\objectives.json";
+//    public static final String outputProgramJson = "D:\\Development\\FrontBackProject\\refactorFront\\static\\refactorPrograms.json";
+//    public static final String outputObjectiveJson = "D:\\Development\\FrontBackProject\\refactorFront\\static\\objectives.json";
+    public static final String outputProgramJson = outputDirectory + File.separator + "refactorPrograms.json";
+    public static final String outputObjectiveJson = outputDirectory + File.separator + "objectives.json";
 
     public static class Program implements Serializable {
         public String name;

@@ -26,7 +26,6 @@ package nsga.plugin;
 
 import nsga.PreProcessLoadData;
 import nsga.Service;
-import com.debacharya.nsgaii.datastructure.*;
 import nsga.datastructure.Chromosome;
 import nsga.datastructure.GroupItemAllele;
 import nsga.datastructure.IntegerAllele;

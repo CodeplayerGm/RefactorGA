@@ -25,7 +25,6 @@
 package nsga;
 
 import com.alibaba.fastjson.JSONObject;
-import com.debacharya.nsgaii.datastructure.*;
 import nsga.datastructure.Chromosome;
 import nsga.datastructure.IntegerAllele;
 import nsga.datastructure.Population;

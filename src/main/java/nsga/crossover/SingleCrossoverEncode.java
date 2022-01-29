@@ -1,11 +1,11 @@
 package nsga.crossover;
 
-import com.debacharya.nsgaii.datastructure.*;
 import nsga.PreProcessLoadData;
 import nsga.datastructure.Chromosome;
 import nsga.datastructure.Population;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.concurrent.ThreadLocalRandom;
 
 public class SingleCrossoverEncode extends AbstractCrossover {

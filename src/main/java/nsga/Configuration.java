@@ -31,7 +31,6 @@ import nsga.mutation.AbstractMutation;
 import nsga.mutation.SinglePointMutation;
 import nsga.objectivefunction.AbstractObjectiveFunction;
 import nsga.objectivefunction.ObjectiveProvider;
-import com.debacharya.nsgaii.plugin.*;
 import nsga.plugin.*;
 import nsga.termination.TerminatingCriterion;
 import nsga.termination.TerminatingCriterionProvider;
