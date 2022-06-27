@@ -221,8 +221,8 @@ public class Chromosome {
 
 			// 陷阱 如 ：0011和1122实际上是相同的
 			// 分组排序
-			List<List<Integer>> valueSet = getSortedFAGroupMapValueSet();
-			List<List<Integer>> contrastSet = contrast.getSortedFAGroupMapValueSet();
+			List<List<Integer>> valueSet = getSortedGroupMapValueSet();
+			List<List<Integer>> contrastSet = contrast.getSortedGroupMapValueSet();
 
 			// 拼接id字符串
 			StringBuilder s1 = new StringBuilder();
@@ -254,7 +254,7 @@ public class Chromosome {
 //		return 0;
 
 		// 新基因型设计
-		List<List<Integer>> valueSet = getSortedFAGroupMapValueSet();
+		List<List<Integer>> valueSet = getSortedGroupMapValueSet();
 		StringBuilder s1 = new StringBuilder();
 		for (List<Integer> group : valueSet) {
 			for (Integer faId : group) {
@@ -266,23 +266,27 @@ public class Chromosome {
 		return s1.toString().hashCode();
 	}
 
-	public List<List<Integer>> getSortedFAGroupMapValueSet() {
-		// key - moduleId，value：fa id list
-		HashMap<Integer, List<Integer>> faGroupMap = new HashMap<>();
+	/**
+	 * 功能原子/代码文件粒度：将基因编码转换成每个服务下的fa列表，服务按照功能原子的数量进行降序排序
+	 * @return
+	 */
+	public List<List<Integer>> getSortedGroupMapValueSet() {
+		// key - moduleId，value：fa/file id list
+		HashMap<Integer, List<Integer>> groupMap = new HashMap<>();
 		for (int i = 0; i < geneticCode.size(); i++) {
 			Integer moduleId = ((IntegerAllele) geneticCode.get(i)).getGene();
-			List<Integer> idList = faGroupMap.get(moduleId);
+			List<Integer> idList = groupMap.get(moduleId);
 			if (idList == null) {
 				idList = new ArrayList<>();
 				idList.add(i);
-				faGroupMap.put(moduleId, idList);
+				groupMap.put(moduleId, idList);
 			} else {
 				idList.add(i);
 			}
 		}
 
 		// 按fa id list的长度排序的keyset
-		return faGroupMap.entrySet().stream()
+		return groupMap.entrySet().stream()
 				.sorted((e1, e2) -> {
 					if (e2.getValue().size() > e1.getValue().size()) {
 						return 1;

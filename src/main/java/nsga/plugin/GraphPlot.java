@@ -1,7 +1,7 @@
 package nsga.plugin;
 
 import nsga.datastructure.Population;
-import nsga.objectivefunction.AbstractObjectiveFunction;
+import nsga.objective.AbstractObjectiveFunction;
 import org.jfree.chart.ChartFactory;
 import org.jfree.chart.ChartPanel;
 import org.jfree.chart.JFreeChart;

@@ -25,21 +25,24 @@
 package nsga;
 
 import nsga.datastructure.*;
-import nsga.objectivefunction.AbstractObjectiveFunction;
+import nsga.objective.AbstractObjectiveFunction;
 
-import java.io.IOException;
+import java.io.*;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardOpenOption;
+import java.text.DecimalFormat;
 import java.util.*;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
-import static nsga.PreProcessLoadData.clusters;
-import static nsga.PreProcessLoadData.faNums;
+import static nsga.ParameterConfig.overloadRemainThreshold;
+import static nsga.PostProcessShowData.outputFrontData;
+import static nsga.PostProcessShowData.outputObjectiveData;
+import static nsga.PreProcessLoadData.*;
 
 public final class Service {
 
@@ -47,6 +50,9 @@ public final class Service {
 	 * this class is never supposed to be instantiated
 	 */
 	private Service() {}
+
+	static DecimalFormat fourDF = new DecimalFormat("#.0000");
+	static DecimalFormat twoDF = new DecimalFormat("#.0");
 
 	public static Chromosome crowdedBinaryTournamentSelection(Population population) {
 
@@ -64,23 +70,40 @@ public final class Service {
 		} else return participant2;
 	}
 
-	/**
-	 * 随机选择单亲个体
-	 * @param population
-	 * @return
-	 */
-	public static Chromosome singleRandomSelection(Population population) {
-		return population.getPopulace().get(ThreadLocalRandom.current().nextInt(0, population.size()));
-	}
-
-	public static Population combinePopulation(Population parent, Population child) {
+	public static Population combinePopulation(Population parent, Population child, int maxPopulationSize, boolean ifFilterOverload) {
 		List<Chromosome> populace = parent.getPopulace();
 		populace.addAll(child.getPopulace());
+
+		if (!ifFilterOverload) {
+			return new Population(populace);
+		}
+
+		// 在给出混合种群前，控制过载个体在总种群中的占比
+		// 为了保证种群的增长过程，当种群个体达到最大时才开始淘汰
+		int combinedPopulationSize = populace.size();
+//		System.out.println("混合种群数量：" + combinedPopulationSize);
+		if (combinedPopulationSize > maxPopulationSize * 1.5) {
+			List<Chromosome> overloadList = populace.stream()
+					.filter(c -> historyRecord.get(c)).collect(Collectors.toList());
+			long overloadCount = overloadList.size();
+//			System.out.println("当前过载个体占比：" + overloadCount * 1.0 / combinedPopulationSize);
+			// 过载个体过多需要淘汰一部分
+			if (overloadCount * 1.0 / combinedPopulationSize > overloadRemainThreshold) {
+//				System.out.print("总种群：" + populace.size() + " ; 过载个体：" + overloadCount + " ; 淘汰：");
+				int cutNum = (int)((overloadCount - populace.size() * overloadRemainThreshold)
+						/ (1 - overloadRemainThreshold));
+//				System.out.println(cutNum);
+				// 淘汰时-考虑效率上的话，通过FIFO进行淘汰
+				for (int i = 0; i < cutNum; i++) {
+					populace.remove(overloadList.get(i));
+				}
+			}
+		}
+
 		return new Population(populace);
 	}
 
 	public static void sortFrontWithCrowdingDistance(List<Chromosome> populace, int front) {
-
 		int frontStartIndex = -1;
 		int frontEndIndex = -1;
 		List<Chromosome> frontToSort = new ArrayList<>();
@@ -291,11 +314,70 @@ public final class Service {
 	}
 
 	/**
+	 * 输入一个个体chromosome，返回其模块 - 文件id列表 映射map
+	 * @param chromosome
+	 * @return
+	 */
+	public static HashMap<Integer, List<Integer>> splitChromosomeToFAFileListMap(Chromosome chromosome) {
+		HashMap<Integer, List<Integer>> moduleFilesMap = new HashMap<>();
+		for (int i = 0; i < faNums; i++) {
+			IntegerAllele allele = (IntegerAllele)chromosome.getGeneticCode().get(i);
+			int moduleIndex = allele.getGene();
+			if (!moduleFilesMap.containsKey(moduleIndex)) {
+				moduleFilesMap.put(moduleIndex, new ArrayList<>());
+			}
+			List<Integer> fileIdList = clusters.get(i).fileList.stream()
+					.map(fs -> allServiceFileList.indexOf(fs)).collect(Collectors.toList());
+			moduleFilesMap.get(moduleIndex).addAll(fileIdList);
+		}
+		return moduleFilesMap;
+	}
+
+	/**
+	 * 将chromosome拆解为：srv - LIST<file>
+	 * 使用的是过载服务的文件列表
+	 * @param chromosome
+	 * @return
+	 */
+	public static HashMap<Integer, List<Integer>> splitChromosomeToServiceFileIdMap(Chromosome chromosome) {
+		HashMap<Integer, List<Integer>> srvFilesMap = new HashMap<>();
+		for (int i = 0; i < overloadServiceFileList.size(); i++) {
+			IntegerAllele allele = (IntegerAllele)chromosome.getGeneticCode().get(i);
+			int srvIndex = allele.getGene();
+			if (!srvFilesMap.containsKey(srvIndex)) {
+				srvFilesMap.put(srvIndex, new ArrayList<>());
+			}
+			srvFilesMap.get(srvIndex).add(i);
+		}
+		return srvFilesMap;
+	}
+
+	/**
+	 * 将chromosome拆解为：srv - LIST<file>
+	 * 使用的是所有业务服务的文件列表
+	 * @param chromosome
+	 * @return
+	 */
+	public static HashMap<Integer, List<Integer>> splitChromosomeToAllFileIdMap(Chromosome chromosome) {
+		HashMap<Integer, List<Integer>> srvFilesMap = new HashMap<>();
+		for (int i = 0; i < overloadServiceFileList.size(); i++) {
+			IntegerAllele allele = (IntegerAllele)chromosome.getGeneticCode().get(i);
+			int srvIndex = allele.getGene();
+			if (!srvFilesMap.containsKey(srvIndex)) {
+				srvFilesMap.put(srvIndex, new ArrayList<>());
+			}
+			String file = overloadServiceFileList.get(i);
+			srvFilesMap.get(srvIndex).add(allServiceFileList.indexOf(file));
+		}
+		return srvFilesMap;
+	}
+
+	/**
 	 * 给定一个FA-id列表，返回它的文件列表
 	 * @param faList
 	 * @return
 	 */
-	public static List<String> getModuleFileList(List<Integer> faList) {
+	public static List<String> getFileListFromFAList(List<Integer> faList) {
 		List<String> moduleFileList = new ArrayList<>();
 		for (Integer i : faList) {
 			moduleFileList.addAll(clusters.get(i).fileList);
@@ -304,22 +386,150 @@ public final class Service {
 	}
 
 	/**
+	 * 给定一个FA-id列表，返回它的文件id列表
+	 * @param faList
+	 * @return
+	 */
+	public static List<Integer> getFileIdListFromFAList(List<Integer> faList) {
+		List<Integer> fileIdList = new ArrayList<>();
+		for (Integer i : faList) {
+			List<Integer> faFileIdList = clusters.get(i).fileList.stream()
+					.map(overloadServiceFileList::indexOf).collect(Collectors.toList());
+			fileIdList.addAll(faFileIdList);
+		}
+		return fileIdList;
+	}
+
+	/**
 	 * 将json字符串写入文件
-	 * @param jsonStr
+	 * @param data
 	 * @param outputPath
 	 */
-	public static void writeObjString(String jsonStr, String outputPath) throws IOException {
+	public static void writeStringToFile(String data, String outputPath) throws IOException {
 		Path path = Paths.get(outputPath);
 		if (Files.exists(path)) {
 			Files.delete(path);
 		}
 		Files.createFile(path);
-		System.out.println(outputPath + " 创建成功");
 		try {
-			Files.write(path, jsonStr.getBytes(StandardCharsets.UTF_8), StandardOpenOption.CREATE);
+			Files.write(path, data.getBytes(StandardCharsets.UTF_8), StandardOpenOption.CREATE);
 		} catch (Exception e) {
 			e.printStackTrace();
 		}
 		System.out.println(outputPath + " 写入成功");
+	}
+
+
+	/**
+	 * 给指定文件追加内容
+	 * @param data
+	 * @param outputPath
+	 */
+	public static void appendStringToFile(String data, String outputPath, boolean ifDeleteOrigin) {
+		try {
+			Path path = Paths.get(outputPath);
+			if (Files.exists(path) && ifDeleteOrigin) {
+				Files.delete(path);
+			}
+			if (!Files.exists(path)) {
+				Files.createFile(path);
+			}
+			Files.write(path, data.getBytes(StandardCharsets.UTF_8), StandardOpenOption.APPEND);
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
+	}
+
+	/**
+	 * 把适应度目标值写入文件
+	 * @param outputPath
+	 * @throws IOException
+	 */
+	public static void writeObjectivesToFile(String outputPath) throws IOException {
+		StringBuilder sb = new StringBuilder();
+		for (List<Double> objective : outputObjectiveData) {
+			for (Double od : objective) {
+				sb.append(od).append(" ");
+			}
+			sb.append("\n");
+		}
+		writeStringToFile(sb.toString(), outputPath);
+	}
+
+	/**
+	 * 把前沿解编码写入文件
+	 * @param outputPath
+	 * @throws IOException
+	 */
+	public static void writeFrontToFile(String outputPath) throws IOException {
+		StringBuilder sb = new StringBuilder();
+		for (List<IntegerAllele> code : outputFrontData) {
+			sb.append(code).append("\n");
+		}
+		writeStringToFile(sb.toString(), outputPath);
+	}
+
+	/**
+	 * 读取文件中的内容到字符串
+	 * @param path
+	 * @return
+	 */
+	public static String readFileAsString(String path) {
+		StringBuilder stringBuilder = new StringBuilder();
+		try {
+			FileInputStream is = new FileInputStream(path);
+			InputStreamReader isr = new InputStreamReader(is, StandardCharsets.UTF_8);
+			BufferedReader br = new BufferedReader(isr);
+			String line;
+			while ((line = br.readLine()) != null) {
+				stringBuilder.append(line).append("\n");
+			}
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
+
+		return stringBuilder.toString().replaceAll("\\/\\*[\\w\\W]*?\\*\\/|\\/\\/.*","");
+	}
+
+	/**
+	 * 随机生成一个功能原子粒度的个体
+	 */
+	public static Chromosome randomGenerateFAChromosome() {
+		List<IntegerAllele> modularAlleles = new ArrayList<>(faNums);
+		for (int i = 0; i < faNums; i++) {
+			int randomSrvId = ThreadLocalRandom.current().nextInt(faNums + 1);
+			modularAlleles.add(new IntegerAllele(randomSrvId));
+		}
+		return new Chromosome(new Chromosome(modularAlleles));
+	}
+
+	/**
+	 * 随机生成一个代码文件粒度的个体
+	 */
+	public static Chromosome randomGenerateFileChromosome() {
+		List<IntegerAllele> modularAlleles = new ArrayList<>(overloadServiceFileList.size());
+		for (int i = 0; i < overloadServiceFileList.size(); i++) {
+			int randomSrvId = ThreadLocalRandom.current().nextInt(overloadServiceFileList.size() + 1);
+			modularAlleles.add(new IntegerAllele(randomSrvId));
+		}
+		return new Chromosome(new Chromosome(modularAlleles));
+	}
+
+	/**
+	 * 保留4位小数，直接截断
+	 * @param data
+	 * @return
+	 */
+	public static String getFourBitsDoubleString(double data) {
+		return fourDF.format(data);
+	}
+
+	/**
+	 * 保留2位小数，直接截断
+	 * @param data
+	 * @return
+	 */
+	public static String getTwoBitsDoubleString(double data) {
+		return twoDF.format(data);
 	}
 }

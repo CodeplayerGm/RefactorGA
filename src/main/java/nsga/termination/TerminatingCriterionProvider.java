@@ -1,6 +1,7 @@
 package nsga.termination;
 
 import static nsga.PreProcessLoadData.historyRecord;
+import static nsga.Service.getFourBitsDoubleString;
 
 public class TerminatingCriterionProvider {
 
@@ -16,16 +17,14 @@ public class TerminatingCriterionProvider {
 	 * 重写的是shouldRun方法。返回为true才继续遗传
 	 * @return
 	 */
-	public static TerminatingCriterion refactorTerminatingCriterion(int maxPopulationSize, int maxRecordSize, double majority) {
-		return ((population, generationCount, maxGenerations) -> {
-			if (generationCount > maxGenerations) {
-				return false;
-			}
-			if (historyRecord.size() > maxRecordSize) {
-				return false;
-			}
-			return population.getPopulace().size() != maxPopulationSize
-					|| !(population.getPopulace().stream().filter(p -> p.getRank() == 1).count() >= population.getPopulace().size() * majority);
+	public static TerminatingCriterion refactorTerminatingCriterion(int maxPopulationSize, int maxRecordSize) {
+		return ((parentPopulation, generationCount, maxGenerations) -> {
+			return generationCount <= maxGenerations && historyRecord.size() <= maxRecordSize;
+//			long firstFrontSize = parentPopulation.getPopulace().stream().filter(p -> p.getRank() == 1).count();
+//			System.out.println("parent size: " + parentPopulation.getPopulace().size() + " ; maxPopulation: " + maxPopulationSize);
+//			System.out.println("first front: " + firstFrontSize + " ; percent: " + getFourBitsDoubleString(firstFrontSize*1.0 / maxPopulationSize));
+//			return parentPopulation.getPopulace().size() != maxPopulationSize
+//					|| !(firstFrontSize >= parentPopulation.getPopulace().size() * majority);
 		});
 	}
 }

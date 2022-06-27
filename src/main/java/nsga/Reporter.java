@@ -27,8 +27,9 @@ package nsga;
 import nsga.datastructure.AbstractAllele;
 import nsga.datastructure.Chromosome;
 import nsga.datastructure.Population;
-import nsga.objectivefunction.AbstractObjectiveFunction;
+import nsga.objective.AbstractObjectiveFunction;
 import nsga.plugin.GraphPlot;
+import nsga.runbody.Configuration;
 
 import java.io.File;
 import java.io.FileWriter;

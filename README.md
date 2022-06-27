@@ -34,8 +34,8 @@
 model-final.theta：文件与主题的概率分布文件
 concern.txt：全部的关注点id、TC值（代表关注点的功能性内聚值，以0.4的阈值进行筛选）
 files.flist：待重构系统的相关代码文件名称（全路径） - 只筛选了服务目录下的代码文件
-allFiles.flist：待重构系统的全部代码文件名称（全路径）- 用于计算SMQ的内聚耦合指标，包括服务外的代码文件
-allCallGraph.json：allFiles里代码文件的call依赖矩阵数据
+overloadServiceFileList.flist：待重构系统的全部代码文件名称（全路径）- 用于计算SMQ的内聚耦合指标，包括服务外的代码文件
+overloadServiceCallGraph.json：allFiles里代码文件的call依赖矩阵数据
 cluster.json：功能原子聚类结果，文件的id与files中的一致
 
 ```

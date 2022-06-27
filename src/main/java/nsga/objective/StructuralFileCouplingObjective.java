@@ -1,0 +1,27 @@
+package nsga.objective;
+
+import nsga.Service;
+import nsga.datastructure.Chromosome;
+
+import java.util.HashMap;
+import java.util.List;
+
+import static nsga.objective.SMQFileObjective.getAllServiceCouplingAsc;
+
+/**
+ * 结构性耦合目标：SMQ的耦合部分
+ * 归一化，并转换为lack of coupling: 1 - coup，越大越好
+ * File Search 粒度
+ */
+public class StructuralFileCouplingObjective extends AbstractObjectiveFunction {
+
+    public StructuralFileCouplingObjective() {
+        this.objectiveFunctionTitle = "Structural File Coupling Index";
+    }
+
+    @Override
+    public double getValue(Chromosome chromosome) {
+        HashMap<Integer, List<Integer>> srvFilesMap = Service.splitChromosomeToServiceFileIdMap(chromosome);
+        return getAllServiceCouplingAsc(srvFilesMap);
+    }
+}
